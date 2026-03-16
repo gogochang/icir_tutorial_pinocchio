@@ -65,6 +65,7 @@ typedef pinocchio::Model Model;
 typedef pinocchio::Data Data;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
 typedef Eigen::Matrix<double, 7, 1> Vector7d;
+typedef Eigen::Matrix<double, 3, 1> Vector3d;
 
 #if GEN3_DOF == 6    
     typedef struct State {   
@@ -76,6 +77,7 @@ typedef Eigen::Matrix<double, 7, 1> Vector7d;
         Vector6d ddq_des;
         Vector6d tau_des;
         Vector6d q_goal;
+        Vector3d task_jog_offset_; // x, y, z offset for ee jog
         Data::Matrix6x J;
     } state;  
     typedef struct CubicVar {
@@ -149,7 +151,7 @@ pinocchio::SE3 m_M_ref;
 
 
 // Waypoint
-Vector6d Home, Home2, Home3, Home4;
+Vector6d Home, Home2, Home3;
 
 void keyboard_event();
 void pos_des_pub();

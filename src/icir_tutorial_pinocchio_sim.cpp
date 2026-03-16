@@ -82,8 +82,7 @@ int main(int argc, char **argv)
 
     Home << 0.00, 45.0, 90.0, 0.0, 45.0, -90.0;
     Home2 << 45.00, 45.0, 90.0, 30.0, 50.0, 0.0;
-    Home3 << 90.00, -25.0, 45.0, 0.0, 45.0, -90.0;    
-    Home4 << 135.00, 45.0, 90.0, 0.0, 45.0, -90.0;
+    Home3 << 90.00, -25.0, 45.0, 0.0, 45.0, -90.0;
     ////////////////////////////////////////////////////////////////////////////////////////
             
     posture_Kp << 40000., 40000., 40000., 40000., 40000., 40000., 40000.;
@@ -146,7 +145,8 @@ int main(int argc, char **argv)
 
                 //set desired ee pose
                 H_ee_ref_ = H_ee_;
-                H_ee_ref_.translation()(2) -= 0.05;                        
+                // H_ee_ref_.translation()(2) -= 0.05; 
+                H_ee_ref_.translation() += state_.task_jog_offset_;                       
 
                 chg_flag_ = false;                
             }
@@ -275,23 +275,64 @@ void keyboard_event(){
                 cout << "Move to Home2 Position" << endl;
                 cout << " " << endl;
                 break;
-            case 'y': //a joint
+
+            case 'u': //a joint
                 ctrl_mode_= 1;
                 state_.q_goal = Home3 * M_PI / 180.;
                 chg_flag_ = true;
                 cout << " " << endl;
                 cout << "Move to Home3 Position" << endl;
                 cout << " " << endl;
-            break;
-                case 'u': //a joint
-                ctrl_mode_= 1;
-                state_.q_goal = Home4 * M_PI / 180.;
+                break;
+                      
+            case 'x': //k ee taskk
+                ctrl_mode_= 3;
+                state_.task_jog_offset_ << 0.05, 0.0, 0.0;
                 chg_flag_ = true;
                 cout << " " << endl;
-                cout << "Move to Home4 Position" << endl;
+                cout << "Move ee 0.05 x" << endl;
                 cout << " " << endl;
                 break;
-
+            case 'X': //k ee taskk
+                ctrl_mode_= 3;
+                state_.task_jog_offset_ << -0.05, 0.0, 0.0;
+                chg_flag_ = true;
+                cout << " " << endl;
+                cout << "Move ee -0.05 x" << endl;
+                cout << " " << endl;
+                break;
+            case 'y': //k ee taskk
+                ctrl_mode_= 3;
+                state_.task_jog_offset_ << 0.0, 0.05, 0.0;
+                chg_flag_ = true;
+                cout << " " << endl;
+                cout << "Move ee 0.05 y" << endl;
+                cout << " " << endl;
+                break;     
+            case 'Y': //k ee taskk
+                ctrl_mode_= 3;
+                state_.task_jog_offset_ << 0.0, -0.05, 0.0;
+                chg_flag_ = true;
+                cout << " " << endl;
+                cout << "Move ee -0.05 y" << endl;
+                cout << " " << endl;
+                break;
+            case 'z': //k ee taskk
+                ctrl_mode_= 3;
+                state_.task_jog_offset_ << 0.0, 0.0, 0.05;
+                chg_flag_ = true;
+                cout << " " << endl;
+                cout << "Move ee 0.05 z" << endl;
+                cout << " " << endl;
+                break;      
+            case 'Z': //k ee taskk
+                ctrl_mode_= 3;
+                state_.task_jog_offset_ << 0.0, 0.0, -0.05;
+                chg_flag_ = true;
+                cout << " " << endl;
+                cout << "Move ee -0.05 z" << endl;
+                cout << " " << endl;
+                break;
             case 'g': //gravity
                 ctrl_mode_ = 0;
                 chg_flag_ = true;
@@ -299,13 +340,15 @@ void keyboard_event(){
                 cout << "garvity mode" << endl;
                 cout << " " << endl;
                 break;
-            case 'k': //k ee task
+
+            case 'i': //i ee task
                 ctrl_mode_= 3;
                 chg_flag_ = true;
                 cout << " " << endl;
                 cout << "Move ee -0.05 z" << endl;
                 cout << " " << endl;
                 break;            
+            
             case 'v': //v impedance control
                 ctrl_mode_= 10;
                 chg_flag_ = true;

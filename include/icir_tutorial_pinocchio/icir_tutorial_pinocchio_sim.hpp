@@ -75,6 +75,7 @@ typedef Eigen::Matrix<double, 7, 1> Vector7d;
         Vector6d v_des;
         Vector6d ddq_des;
         Vector6d tau_des;
+        Vector6d q_goal;
         Data::Matrix6x J;
     } state;  
     typedef struct CubicVar {
@@ -148,7 +149,7 @@ pinocchio::SE3 m_M_ref;
 
 
 // Waypoint
-Vector6d Home, Home2;
+Vector6d Home, Home2, Home3, Home4;
 
 void keyboard_event();
 void pos_des_pub();

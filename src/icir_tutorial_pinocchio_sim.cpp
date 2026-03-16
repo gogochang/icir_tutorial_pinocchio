@@ -81,7 +81,9 @@ int main(int argc, char **argv)
     ////////////////////////////////////////////////////////////////////////////////////////      
 
     Home << 0.00, 45.0, 90.0, 0.0, 45.0, -90.0;
-    Home2 << 45.00, 45.0, 90.0, 30.0, 50.0, 0.0;    
+    Home2 << 45.00, 45.0, 90.0, 30.0, 50.0, 0.0;
+    Home3 << 90.00, -25.0, 45.0, 0.0, 45.0, -90.0;    
+    Home4 << 135.00, 45.0, 90.0, 0.0, 45.0, -90.0;
     ////////////////////////////////////////////////////////////////////////////////////////
             
     posture_Kp << 40000., 40000., 40000., 40000., 40000., 40000., 40000.;
@@ -106,7 +108,7 @@ int main(int argc, char **argv)
             state_.tau_des.setZero();    
         }
 
-        if (ctrl_mode_ == 1){ // joint task //h home
+        if (ctrl_mode_ == 1){ // joint task
             if (chg_flag_){
                 cubic_.stime = time_;
                 cubic_.ftime = time_+ 2.0;
@@ -115,7 +117,8 @@ int main(int argc, char **argv)
 
                 for (int i = 0; i<GEN3_DOF; i++)
                 {
-                    q_target_(i) = Home(i) * M_PI / 180.;
+                    // q_target_(i) = Home(i) * M_PI / 180.;
+                    q_target_(i) = state_.q_goal(i);
                 }               
 
                 chg_flag_ = false;
@@ -129,33 +132,7 @@ int main(int argc, char **argv)
                 state_.q_des_pre(i) = state_.q_des(i);
                 
                 state_.ddq_des(i) = -posture_Kp(i)*(state_.q(i) - state_.q_des(i)) -posture_Kd(i)*(state_.v(i) - state_.v_des(i));
-            }                 
-        }
-
-        if (ctrl_mode_ == 2){ // joint task //a home2
-            if (chg_flag_){
-                cubic_.stime = time_;       
-                cubic_.ftime = time_+ 2.0;
-                cubic_.q0 = state_.q;
-                cubic_.v0 = state_.v;                
-
-                for (int i = 0; i<GEN3_DOF; i++)
-                {                    
-                    q_target_(i) = Home2(i) * M_PI / 180.;
-                }               
-
-                chg_flag_ = false;
-            }            
-            for (int i=0; i<GEN3_DOF; i++)
-            {
-                // state_.q_des(i) = cubic(time_, cubic_.stime, cubic_.ftime, cubic_.q0(i), q_target_(i), cubic_.v0(i), 0.0);                            
-                state_.q_des(i) = cubic(time_, cubic_.stime, cubic_.ftime, cubic_.q0(i), q_target_(i), 0.0, 0.0);                            
-
-                state_.v_des(i) = (state_.q_des(i) - state_.q_des_pre(i)) * SAMPLING_RATE;
-                state_.q_des_pre(i) = state_.q_des(i);
-                
-                state_.ddq_des(i) = -posture_Kp(i)*(state_.q(i) - state_.q_des(i)) -posture_Kd(i)*(state_.v(i) - state_.v_des(i));
-            }            
+            }
         }
         
         if (ctrl_mode_ == 3){ // ee task //k ee jog -0.05z
@@ -284,23 +261,42 @@ void keyboard_event(){
         switch (key){
             case 'h': //home joint
                 ctrl_mode_ = 1;
+                state_.q_goal = Home * M_PI / 180.;
                 chg_flag_ = true;
                 cout << " " << endl;
                 cout << "Move to Home Position" << endl;
                 cout << " " << endl;
                 break;
+            case 'j': //a joint
+                ctrl_mode_= 1;
+                state_.q_goal = Home2 * M_PI / 180.;
+                chg_flag_ = true;
+                cout << " " << endl;
+                cout << "Move to Home2 Position" << endl;
+                cout << " " << endl;
+                break;
+            case 'y': //a joint
+                ctrl_mode_= 1;
+                state_.q_goal = Home3 * M_PI / 180.;
+                chg_flag_ = true;
+                cout << " " << endl;
+                cout << "Move to Home3 Position" << endl;
+                cout << " " << endl;
+            break;
+                case 'u': //a joint
+                ctrl_mode_= 1;
+                state_.q_goal = Home4 * M_PI / 180.;
+                chg_flag_ = true;
+                cout << " " << endl;
+                cout << "Move to Home4 Position" << endl;
+                cout << " " << endl;
+                break;
+
             case 'g': //gravity
                 ctrl_mode_ = 0;
                 chg_flag_ = true;
                 cout << " " << endl;
                 cout << "garvity mode" << endl;
-                cout << " " << endl;
-                break;
-            case 'a': //a joint
-                ctrl_mode_= 2;
-                chg_flag_ = true;
-                cout << " " << endl;
-                cout << "Move to Home2 Position" << endl;
                 cout << " " << endl;
                 break;
             case 'k': //k ee task

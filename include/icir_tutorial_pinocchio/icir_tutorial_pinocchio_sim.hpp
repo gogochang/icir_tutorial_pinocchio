@@ -129,7 +129,7 @@ typedef Eigen::Matrix<double, 3, 3> Matrix3d;
 std::shared_ptr<RobotWrapper> robot_;
 Model model_;
 Data data_;
-SE3 H_ee_, H_ee_ref_;
+SE3 H_ee_, H_ee_ref_, H_ee_init_;
 Eigen::VectorXd m_p_;
 pinocchio::Data::Matrix6x m_J_local_;
 
@@ -142,7 +142,7 @@ Model::JointIndex m_joint_id;
 Model::FrameIndex m_frame_id;
 
 // Control Variable
-double mujoco_time_, time_;
+double mujoco_time_, time_, sine_stime_;
 state state_;
 cubicvar cubic_;
 se3cubicvar SE3Cubic_;

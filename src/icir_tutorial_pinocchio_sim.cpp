@@ -57,7 +57,7 @@ int main(int argc, char **argv)
     state_.v_des.setZero();
     state_.ddq_des.setZero();
     state_.tau_des.setZero(); 
-       
+
     state_.task_jog_offset_.setZero();
     state_.task_rot_offset_ = Eigen::Matrix3d::Identity();
     
@@ -194,6 +194,53 @@ int main(int argc, char **argv)
 
             //publish
             pos_des_pub();            
+            pos_cur_pub();
+        }
+        if (ctrl_mode_ == 4) { // sine motion
+            if (chg_flag_) {
+                sine_stime_ = time_;
+                H_ee_init_ = robot_->position(data_, m_joint_id);
+
+                chg_flag_ = false;
+            }
+
+            double t = time_ -sine_stime_;
+            double A = 0.05;
+            double f = 0.5;
+
+            m_M_ref = H_ee_init_;
+            m_M_ref.translation()(2) += A * sin(2.0 * M_PI * f * t);
+
+            SE3 oMi;
+            Motion v_frame;
+            robot_->framePosition(data_, m_frame_id, oMi);
+            robot_->frameVelocity(data_, m_frame_id, v_frame);
+            robot_->frameClassicAcceleration(data_, m_frame_id, m_drift);
+            robot_->jacobianWorld(data_, m_joint_id, state_.J);
+            robot_->frameJacobianLocal(data_, m_frame_id, m_J_local_);
+
+            SE3ToVector(oMi, m_p_);
+            errorInSE3(oMi, m_M_ref, m_p_error);
+
+            // Transformation from local to world
+            m_wMl.translation(oMi.translation());
+            m_wMl.rotation(oMi.rotation());
+
+            m_p_error_vec = m_p_error.toVector();
+            m_v_error = m_wMl.actInv(m_v_ref) - v_frame;
+
+            // Task Space PD Control Law
+            m_a_des = ee_Kp.cwiseProduct(m_p_error_vec)
+                    + ee_Kd.cwiseProduct(m_v_error.toVector())
+                    + m_wMl.actInv(m_a_ref).toVector();
+
+            // 자코비안 의사 역행렬을 이용한 관절 가속도 분배
+            state_.ddq_des = m_J_local_.completeOrthogonalDecomposition().pseudoInverse() * (m_a_des - m_drift.toVector());
+
+            // publish (rqt_plot으로 궤적을 확인하기 위해 꼭 필요)
+            // Sine 궤적의 Z축 변화를 보기 위해 sampleEE_ 대신 m_M_ref를 벡터로 변환해서 퍼블리시
+            // SE3ToVector(m_M_ref, sampleEE_);
+            pos_des_pub();
             pos_cur_pub();
         }
 
@@ -388,6 +435,14 @@ void keyboard_event(){
                 chg_flag_ = true;
                 cout << " " << endl;
                 cout << "Rotate ee -5 deg about z" << endl;
+                cout << " " << endl;
+                break;
+
+            case 'w':
+                ctrl_mode_ = 4;
+                chg_flag_ = true;
+                cout << " " << endl;
+                cout << "Start Sine Motion (Z-axis)" << endl;
                 cout << " " << endl;
                 break;
 

@@ -66,6 +66,7 @@ typedef pinocchio::Data Data;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
 typedef Eigen::Matrix<double, 7, 1> Vector7d;
 typedef Eigen::Matrix<double, 3, 1> Vector3d;
+typedef Eigen::Matrix<double, 3, 3> Matrix3d;
 
 #if GEN3_DOF == 6    
     typedef struct State {   
@@ -78,6 +79,7 @@ typedef Eigen::Matrix<double, 3, 1> Vector3d;
         Vector6d tau_des;
         Vector6d q_goal;
         Vector3d task_jog_offset_; // x, y, z offset for ee jog
+        Matrix3d task_rot_offset_; // roll, pitch, yaw offset for ee jog
         Data::Matrix6x J;
     } state;  
     typedef struct CubicVar {

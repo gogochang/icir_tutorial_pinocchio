@@ -56,8 +56,11 @@ int main(int argc, char **argv)
     state_.q_des_pre.setZero();   
     state_.v_des.setZero();
     state_.ddq_des.setZero();
-    state_.tau_des.setZero();    
-
+    state_.tau_des.setZero(); 
+       
+    state_.task_jog_offset_.setZero();
+    state_.task_rot_offset_ = Eigen::Matrix3d::Identity();
+    
     m_p_.resize(12);
     m_v.resize(6);
     m_a.resize(6);
@@ -145,9 +148,14 @@ int main(int argc, char **argv)
 
                 //set desired ee pose
                 H_ee_ref_ = H_ee_;
-                // H_ee_ref_.translation()(2) -= 0.05; 
-                H_ee_ref_.translation() += state_.task_jog_offset_;                       
 
+                // H_ee_ref_.translation()(2) -= 0.05; 
+                H_ee_ref_.translation() += state_.task_jog_offset_;
+                H_ee_ref_.rotation() = H_ee_.rotation() * state_.task_rot_offset_;
+
+                state_.task_jog_offset_.setZero();
+                state_.task_rot_offset_ = Eigen::Matrix3d::Identity();
+                
                 chg_flag_ = false;                
             }
 
@@ -333,6 +341,56 @@ void keyboard_event(){
                 cout << "Move ee -0.05 z" << endl;
                 cout << " " << endl;
                 break;
+
+            case 'a':
+                ctrl_mode_= 3;
+                state_.task_rot_offset_ = Eigen::AngleAxisd(5.0 * M_PI / 180.0, Eigen::Vector3d::UnitX()).toRotationMatrix();
+                chg_flag_ = true;
+                cout << " " << endl;
+                cout << "Rotate ee 5 deg about x" << endl;
+                cout << " " << endl;
+                break;
+            case 'A':
+                ctrl_mode_= 3;
+                state_.task_rot_offset_ = Eigen::AngleAxisd(-5.0 * M_PI / 180.0, Eigen::Vector3d::UnitX()).toRotationMatrix();
+                chg_flag_ = true;
+                cout << " " << endl;
+                cout << "Rotate ee -5 deg about x" << endl;
+                cout << " " << endl;
+                break;
+            case 's':
+                ctrl_mode_= 3;
+                state_.task_rot_offset_ = Eigen::AngleAxisd(5.0 * M_PI / 180.0, Eigen::Vector3d::UnitY()).toRotationMatrix();
+                chg_flag_ = true;
+                cout << " " << endl;
+                cout << "Rotate ee 5 deg about y" << endl;
+                cout << " " << endl;
+                break;
+            case 'S':
+                ctrl_mode_= 3;
+                state_.task_rot_offset_ = Eigen::AngleAxisd(-5.0 * M_PI / 180.0, Eigen::Vector3d::UnitY()).toRotationMatrix();
+                chg_flag_ = true;
+                cout << " " << endl;
+                cout << "Rotate ee -5 deg about y" << endl;
+                cout << " " << endl;
+                break;
+            case 'd':
+                ctrl_mode_= 3;
+                state_.task_rot_offset_ = Eigen::AngleAxisd(5.0 * M_PI / 180.0, Eigen::Vector3d::UnitZ()).toRotationMatrix();
+                chg_flag_ = true;
+                cout << " " << endl;
+                cout << "Rotate ee 5 deg about z" << endl;
+                cout << " " << endl;
+                break;
+            case 'D':
+                ctrl_mode_= 3;
+                state_.task_rot_offset_ = Eigen::AngleAxisd(-5.0 * M_PI / 180.0, Eigen::Vector3d::UnitZ()).toRotationMatrix();
+                chg_flag_ = true;
+                cout << " " << endl;
+                cout << "Rotate ee -5 deg about z" << endl;
+                cout << " " << endl;
+                break;
+
             case 'g': //gravity
                 ctrl_mode_ = 0;
                 chg_flag_ = true;

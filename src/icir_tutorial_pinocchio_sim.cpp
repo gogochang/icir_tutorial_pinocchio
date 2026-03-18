@@ -50,6 +50,7 @@ int main(int argc, char **argv)
     // Control Variable
     ctrl_mode_ = 0;
     chg_flag_ = false;
+    gripper_pos_des_ = 0.0;
     state_.J.resize(6, GEN3_DOF);   
 
     state_.q_des.setZero();
@@ -83,16 +84,16 @@ int main(int argc, char **argv)
     }
     ////////////////////////////////////////////////////////////////////////////////////////      
 
-    Home << 0.00, 45.0, 90.0, 0.0, 45.0, -90.0;
-    Home2 << 45.00, 45.0, 90.0, 30.0, 50.0, 0.0;
-    Home3 << 90.00, -25.0, 45.0, 0.0, 45.0, -90.0;
+    Home << 0.00, 45.0, 90.0, 0.0, 45.0, -90.0, 0.0;
+    Home2 << 45.00, 45.0, 90.0, 30.0, 50.0, 0.0, 0.0;
+    Home3 << 90.00, -25.0, 45.0, 0.0, 45.0, -90.0, 0.0;
     ////////////////////////////////////////////////////////////////////////////////////////
             
     posture_Kp << 40000., 40000., 40000., 40000., 40000., 40000., 40000.;
     posture_Kd << 2.0*posture_Kp.cwiseSqrt();
     
     // ee_Kp << 1000., 1000., 1000., 2000., 2000., 2000.;
-    ee_Kp << 5000., 5000., 5000., 50000., 50000., 50000.;
+    ee_Kp << 5000., 5000., 5000., 50000., 50000., 50000., 50000.;
     ee_Kd << 2.0*ee_Kp.cwiseSqrt();
     ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -190,7 +191,11 @@ int main(int argc, char **argv)
                         + m_wMl.actInv(m_a_ref).toVector();                             
 
             //transformation from ee to joint            
-            state_.ddq_des = m_J_local_.completeOrthogonalDecomposition().pseudoInverse() * (m_a_des - m_drift.toVector());                                            
+            // state_.ddq_des = m_J_local_.completeOrthogonalDecomposition().pseudoInverse() * (m_a_des - m_drift.toVector());                                            
+
+            Eigen::Matrix<double, 6, 7> J_fixed = m_J_local_;
+            Eigen::Matrix<double, 6, 1> a_error = m_a_des.head<6>() - m_drift.toVector();
+            state_.ddq_des = J_fixed.completeOrthogonalDecomposition().solve(a_error);
 
             //publish
             pos_des_pub();            
@@ -235,7 +240,11 @@ int main(int argc, char **argv)
                     + m_wMl.actInv(m_a_ref).toVector();
 
             // 자코비안 의사 역행렬을 이용한 관절 가속도 분배
-            state_.ddq_des = m_J_local_.completeOrthogonalDecomposition().pseudoInverse() * (m_a_des - m_drift.toVector());
+            // state_.ddq_des = m_J_local_.completeOrthogonalDecomposition().pseudoInverse() * (m_a_des - m_drift.toVector());
+
+            Eigen::Matrix<double, 6, 7> J_fixed = m_J_local_;
+            Eigen::Matrix<double, 6, 1> a_error = m_a_des.head<6>() - m_drift.toVector();
+            state_.ddq_des = J_fixed.completeOrthogonalDecomposition().solve(a_error);
 
             // publish (rqt_plot으로 궤적을 확인하기 위해 꼭 필요)
             // Sine 궤적의 Z축 변화를 보기 위해 sampleEE_ 대신 m_M_ref를 벡터로 변환해서 퍼블리시
@@ -290,12 +299,20 @@ int main(int argc, char **argv)
                         + m_wMl.actInv(m_a_ref).toVector();                             
 
             //transformation from ee to joint            
-            state_.ddq_des = m_J_local_.completeOrthogonalDecomposition().pseudoInverse() * (m_a_des - m_drift.toVector());                                            
+            // state_.ddq_des = m_J_local_.completeOrthogonalDecomposition().pseudoInverse() * (m_a_des - m_drift.toVector());                                            
 
+            Eigen::Matrix<double, 6, 7> J_fixed = m_J_local_;
+            Eigen::Matrix<double, 6, 1> a_error = m_a_des.head<6>() - m_drift.toVector();
+            state_.ddq_des = J_fixed.completeOrthogonalDecomposition().solve(a_error);
+            
             //publish
             pos_des_pub();            
             pos_cur_pub();
         }
+
+        double Kp_grip = 8000.0;
+        double Kd_grip = 0.8 * sqrt(Kp_grip);
+        state_.ddq_des(6) = Kp_grip * (gripper_pos_des_ - state_.q(6)) - Kd_grip * state_.v(6);
     
         ////////////////////////////////////////////////////////////////////////////////////////
         state_.tau_des = data_.M * state_.ddq_des + data_.nle;
@@ -444,6 +461,15 @@ void keyboard_event(){
                 cout << " " << endl;
                 cout << "Start Sine Motion (Z-axis)" << endl;
                 cout << " " << endl;
+                break;
+
+            case 'o':
+                gripper_pos_des_ = 0.0;
+                cout << "Gripper Open!" << endl;
+                break;
+            case 'c':
+                gripper_pos_des_ = 2.5;
+                cout << "Gripper Close!" << endl;
                 break;
 
             case 'g': //gravity

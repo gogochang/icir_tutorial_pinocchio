@@ -45,7 +45,7 @@ using namespace std;
 using namespace pinocchio;
 
 #define SAMPLING_RATE 1000
-#define GEN3_DOF 6
+#define GEN3_DOF 7
 
 /////////////////////////// ROS Setting ////////////////////////////////////////////////    
 ros::Publisher mujoco_command_pub_;
@@ -97,6 +97,9 @@ typedef Eigen::Matrix<double, 3, 3> Matrix3d;
     Vector6d q_target_;    
     Vector6d posture_Kp, posture_Kd;
     Vector6d ee_Kp, ee_Kd;
+
+    // Waypoint
+    Vector6d Home, Home2, Home3;
 #else
     typedef struct State {   
         Vector7d q;
@@ -106,6 +109,9 @@ typedef Eigen::Matrix<double, 3, 3> Matrix3d;
         Vector7d v_des;
         Vector7d ddq_des;
         Vector7d tau_des;
+        Vector7d q_goal;
+        Vector3d task_jog_offset_; // x, y, z offset for ee jog
+        Matrix3d task_rot_offset_; // roll, pitch, yaw offset for ee jog
         Data::Matrix6x J;
     } state;  
     typedef struct CubicVar {
@@ -123,6 +129,10 @@ typedef Eigen::Matrix<double, 3, 3> Matrix3d;
     Vector7d q_target_;
     Vector7d posture_Kp, posture_Kd;
     Vector6d ee_Kp, ee_Kd;
+
+    // Waypoint
+    Vector7d Home, Home2, Home3;
+
 #endif
 
 // Pinocchio
@@ -143,6 +153,7 @@ Model::FrameIndex m_frame_id;
 
 // Control Variable
 double mujoco_time_, time_, sine_stime_;
+double gripper_pos_des_;
 state state_;
 cubicvar cubic_;
 se3cubicvar SE3Cubic_;
@@ -150,10 +161,6 @@ int ctrl_mode_;
 bool chg_flag_;
 Eigen::VectorXd sampleEE_;
 pinocchio::SE3 m_M_ref;
-
-
-// Waypoint
-Vector6d Home, Home2, Home3;
 
 void keyboard_event();
 void pos_des_pub();

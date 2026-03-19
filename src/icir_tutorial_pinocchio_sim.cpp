@@ -87,6 +87,8 @@ int main(int argc, char **argv)
     Home << 0.00, 45.0, 90.0, 0.0, 45.0, -90.0, 0.0;
     Home2 << 45.00, 45.0, 90.0, 30.0, 50.0, 0.0, 0.0;
     Home3 << 90.00, -25.0, 45.0, 0.0, 45.0, -90.0, 0.0;
+    Pick << 180.0, -15.0, 125.0, 0.0, 40.0, 0.0, 0.0;
+    Place << 0.0, -15.0, 125.0, 0.0, 40.0, 0.0, 0.0;
     ////////////////////////////////////////////////////////////////////////////////////////
             
     posture_Kp << 40000., 40000., 40000., 40000., 40000., 40000., 40000.;
@@ -117,6 +119,7 @@ int main(int argc, char **argv)
                 cubic_.ftime = time_+ 2.0;
                 cubic_.q0 = state_.q;
                 cubic_.v0 = state_.v;                
+                state_.q_des_pre = state_.q; // Initialize q_des_pre to prevent velocity spike
 
                 for (int i = 0; i<GEN3_DOF; i++)
                 {
@@ -495,6 +498,24 @@ void keyboard_event(){
                 cout << "impedance control" << endl;
                 cout << " " << endl;
                 break;  
+
+            case 'p': //pick pose
+                ctrl_mode_ = 1;
+                state_.q_goal = Pick * M_PI / 180.;
+                chg_flag_ = true;
+                cout << " " << endl;
+                cout << "Move to Pick Position (Box)" << endl;
+                cout << " " << endl;
+                break;
+
+            case 'l': //place pose
+                ctrl_mode_ = 1;
+                state_.q_goal = Place * M_PI / 180.;
+                chg_flag_ = true;
+                cout << " " << endl;
+                cout << "Move to Place Position" << endl;
+                cout << " " << endl;
+                break;
         }
     }
 }

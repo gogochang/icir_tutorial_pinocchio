@@ -99,7 +99,7 @@ typedef Eigen::Matrix<double, 3, 3> Matrix3d;
     Vector6d ee_Kp, ee_Kd;
 
     // Waypoint
-    Vector6d Home, Home2, Home3;
+    Vector6d Home, Home2, Home3, Pick, Place;
 #else
     typedef struct State {   
         Vector7d q;
@@ -131,7 +131,7 @@ typedef Eigen::Matrix<double, 3, 3> Matrix3d;
     Vector6d ee_Kp, ee_Kd;
 
     // Waypoint
-    Vector7d Home, Home2, Home3;
+    Vector7d Home, Home2, Home3, Pick, Place;
 
 #endif
 

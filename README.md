@@ -58,3 +58,20 @@ from terminal, press 'a' to move the robot to another pose
 from terminal, press 'k' to move the robot to -0.05m in global z direction
 from terminal, press 'v' to enable cartesian impedance control in translational direction
 ```
+
+## 4. Tutorial assignments
+### 4.1. Assignment 3-1: Custom Motion in Joint Space 
+![simplescreenrecorder-2026-03-21_15 08 05-2026-03-21_15 33 06-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/dd207a7f-2ec4-44c9-ab45-1affd3ccc514)
+
+### 4.1. Assignment 3-2: Translational Jog in Task Space
+![simplescreenrecorder-2026-03-21_15 08 05-2026-03-21_15 34 29-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/69f3d095-d953-4409-a76b-e20d15b7ebb8)
+
+### 4.2. Assignment 3-3: Rotational Jog in Task Space
+![simplescreenrecorder-2026-03-21_15 08 05-2026-03-21_15 36 24-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/43bb5cca-d9fe-437f-b677-f24caee99b31)
+
+### 4.2. Assignment 3-4: Sine Motion in Task Space
+![simplescreenrecorder-2026-03-21_15 08 05-2026-03-21_15 37 37-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/bfefa8cf-32f4-4e50-b822-278f408d2c49)
+
+### 4.3. Assignment 3-5 & 3-6: Pick-and-Place of Box and Cup Models in MuJoCo
+![simplescreenrecorder-2026-03-21_15 08 05-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/5341471b-4fce-4dba-bdc0-c2bbe3c97088)
+

@@ -25,7 +25,10 @@
           <remap from="joint_states"     to="mujoco_ros/mujoco_ros_interface/joint_states" />
   </node>
 
-  <!-- rqt_gui -->    
-  <node name="rqt" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find icir_tutorial_pinocchio)/rqt/icir_tutorial_pinocchio.perspective" output="screen"/>    
+  <!-- rqt_gui -->
+  <node name="rqt" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find icir_tutorial_pinocchio)/rqt/icir_tutorial_pinocchio.perspective" output="screen"/>
+
+  <!-- SAM click node -->
+  <node name="sam_click_node" pkg="icir_tutorial_pinocchio" type="sam_click_node.py" output="screen"/>
 
 </launch>

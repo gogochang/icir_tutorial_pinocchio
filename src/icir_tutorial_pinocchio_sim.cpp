@@ -15,6 +15,8 @@ int main(int argc, char **argv)
     jointState = n_node.subscribe("mujoco_ros/mujoco_ros_interface/joint_states", 5, &JointStateCallback, ros::TransportHints().tcpNoDelay(true));
     mujoco_command_sub = n_node.subscribe("mujoco_ros/mujoco_ros_interface/sim_command_sim2con", 5, &simCommandCallback, ros::TransportHints().tcpNoDelay(true));
     mujoco_time_sub = n_node.subscribe("mujoco_ros/mujoco_ros_interface/sim_time", 1, &simTimeCallback, ros::TransportHints().tcpNoDelay(true));
+    sam_approach_sub_ = n_node.subscribe("/sam/approach_point", 1, &samApproachCallback);
+    sam_grasp_sub_    = n_node.subscribe("/sam/grasp_point",    1, &samGraspCallback);
 
     // Mujoco Pubs
     mujoco_command_pub_ = n_node.advertise<std_msgs::String>("mujoco_ros/mujoco_ros_interface/sim_command_con2sim", 5);
@@ -87,8 +89,8 @@ int main(int argc, char **argv)
     Home << 0.00, 45.0, 90.0, 0.0, 45.0, -90.0, 0.0;
     Home2 << 45.00, 45.0, 90.0, 30.0, 50.0, 0.0, 0.0;
     Home3 << 90.00, -25.0, 45.0, 0.0, 45.0, -90.0, 0.0;
-    Pick << 180.0, -15.0, 125.0, 0.0, 40.0, 0.0, 0.0;
-    Place << 0.0, -15.0, 125.0, 0.0, 40.0, 0.0, 0.0;
+    Pick << 180.0, -15.0, 125.0, 0.0, 40.0, -90.0, 0.0;
+    Place << 0.0, -15.0, 125.0, 0.0, 40.0, -90.0, 0.0;
     ////////////////////////////////////////////////////////////////////////////////////////
             
     posture_Kp << 40000., 40000., 40000., 40000., 40000., 40000., 40000.;
@@ -100,8 +102,89 @@ int main(int argc, char **argv)
     ////////////////////////////////////////////////////////////////////////////////////////
 
     while (ros::ok()){
-        keyboard_event();    
-        
+        keyboard_event();
+
+        // ── SAM Pick State Machine ────────────────────────────────────────
+        // 카메라 → 월드 변환 헬퍼
+        auto cam_to_world = [&](double cx, double cy, double cz) -> Eigen::Vector3d {
+            // 카메라 오프셋 in Bracelet_Link frame (XML: pos="0 0.08 -0.04")
+            pinocchio::SE3 T_world_bl  = robot_->position(data_, m_joint_id);
+            pinocchio::SE3 T_bl_cam(Eigen::Matrix3d::Identity(), Eigen::Vector3d(0.0, 0.08, -0.04));
+            pinocchio::SE3 T_world_cam = T_world_bl * T_bl_cam;
+            return T_world_cam.act(Eigen::Vector3d(cx, cy, cz));
+        };
+
+        // 그리퍼팁이 target_world에 오도록 BL offset 계산
+        auto compute_offset = [&](const Eigen::Vector3d& target_world) {
+            pinocchio::SE3 T_world_bl = robot_->position(data_, m_joint_id);
+            Eigen::Vector3d gripper_offset_world = T_world_bl.rotation() * T_BL_GRIPPER_TIP;
+            Eigen::Vector3d target_bl = target_world - gripper_offset_world;
+            Eigen::Vector3d offset    = target_bl - T_world_bl.translation();
+            const double MAX_OFFSET = 0.6;
+            if (offset.norm() > MAX_OFFSET) {
+                ROS_WARN("[SAM] Offset %.3f m clamped to %.1f m", offset.norm(), MAX_OFFSET);
+                offset = offset.normalized() * MAX_OFFSET;
+            }
+            return offset;
+        };
+
+        // approach 수신 → 포인트 저장 + APPROACH 시작 (IDLE일 때만)
+        if (pick_state_ == PICK_IDLE && sam_approach_received_ && sam_grasp_received_) {
+            sam_approach_received_ = false;
+            sam_grasp_received_    = false;
+
+            approach_world_ = cam_to_world(sam_approach_cam_[0], sam_approach_cam_[1], sam_approach_cam_[2]);
+            grasp_world_    = cam_to_world(sam_grasp_cam_[0],    sam_grasp_cam_[1],    sam_grasp_cam_[2]);
+
+            cout << "[SAM] approach world: " << approach_world_.transpose() << endl;
+            cout << "[SAM] grasp    world: " << grasp_world_.transpose()    << endl;
+
+            // 그리퍼 열기
+            gripper_pos_des_ = 0.0;
+
+            // APPROACH 이동
+            state_.task_jog_offset_ = compute_offset(approach_world_);
+            ctrl_mode_ = 3;
+            chg_flag_  = true;
+
+            pick_state_            = PICK_APPROACH;
+            pick_state_start_time_ = time_;
+        }
+
+        // State machine 전환
+        if (pick_state_ == PICK_APPROACH && (time_ - pick_state_start_time_) > 3.0) {
+            // DESCEND: 그리퍼팁을 물체 윗면으로
+            state_.task_jog_offset_ = compute_offset(grasp_world_);
+            state_.task_rot_offset_ = Eigen::Matrix3d::Identity();
+            ctrl_mode_ = 3;
+            chg_flag_  = true;
+            pick_state_            = PICK_DESCEND;
+            pick_state_start_time_ = time_;
+            cout << "[SAM] State: DESCEND" << endl;
+        }
+        else if (pick_state_ == PICK_DESCEND && (time_ - pick_state_start_time_) > 3.0) {
+            // GRASP: 그리퍼 닫기
+            gripper_pos_des_ = 2.5;
+            pick_state_            = PICK_GRASP;
+            pick_state_start_time_ = time_;
+            cout << "[SAM] State: GRASP (closing gripper)" << endl;
+        }
+        else if (pick_state_ == PICK_GRASP && (time_ - pick_state_start_time_) > 1.0) {
+            // LIFT: approach 높이로 다시 올라가기
+            state_.task_jog_offset_ = compute_offset(approach_world_);
+            state_.task_rot_offset_ = Eigen::Matrix3d::Identity();
+            ctrl_mode_ = 3;
+            chg_flag_  = true;
+            pick_state_            = PICK_LIFT;
+            pick_state_start_time_ = time_;
+            cout << "[SAM] State: LIFT" << endl;
+        }
+        else if (pick_state_ == PICK_LIFT && (time_ - pick_state_start_time_) > 3.0) {
+            pick_state_ = PICK_IDLE;
+            cout << "[SAM] State: IDLE (pick complete)" << endl;
+        }
+        // ─────────────────────────────────────────────────────────────────
+
         std_msgs::String sim_run_msg_;
         sim_run_msg_.data = true;
         mujoco_run_pub_.publish(sim_run_msg_);
@@ -583,5 +666,33 @@ void pos_cur_pub()
         msg.data[i] = m_p_[i];
     }
     pos_cur_pub_.publish(msg);
+}
+
+void samApproachCallback(const geometry_msgs::PointStamped::ConstPtr& msg)
+{
+    if (pick_state_ != PICK_IDLE) {
+        ROS_WARN("[SAM] Pick in progress (state=%d), ignoring approach point", pick_state_);
+        return;
+    }
+    sam_approach_cam_[0] = msg->point.x;
+    sam_approach_cam_[1] = msg->point.y;
+    sam_approach_cam_[2] = msg->point.z;
+    sam_approach_received_ = true;
+    ROS_INFO("[SAM] approach (cam): x=%.3f y=%.3f z=%.3f",
+             sam_approach_cam_[0], sam_approach_cam_[1], sam_approach_cam_[2]);
+}
+
+void samGraspCallback(const geometry_msgs::PointStamped::ConstPtr& msg)
+{
+    if (pick_state_ != PICK_IDLE) {
+        ROS_WARN("[SAM] Pick in progress (state=%d), ignoring grasp point", pick_state_);
+        return;
+    }
+    sam_grasp_cam_[0] = msg->point.x;
+    sam_grasp_cam_[1] = msg->point.y;
+    sam_grasp_cam_[2] = msg->point.z;
+    sam_grasp_received_ = true;
+    ROS_INFO("[SAM] grasp    (cam): x=%.3f y=%.3f z=%.3f",
+             sam_grasp_cam_[0], sam_grasp_cam_[1], sam_grasp_cam_[2]);
 }
 

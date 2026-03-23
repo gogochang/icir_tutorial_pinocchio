@@ -31,6 +31,7 @@
 #include "geometry_msgs/Twist.h"
 #include "geometry_msgs/Wrench.h"
 #include "geometry_msgs/Pose.h"
+#include "geometry_msgs/PointStamped.h"
 #include "tf/tf.h"
 
 //SYSTEM Header
@@ -57,6 +58,23 @@ ros::Publisher pos_des_pub_, pos_cur_pub_;
 ros::Subscriber jointState;
 ros::Subscriber mujoco_command_sub;
 ros::Subscriber mujoco_time_sub;
+ros::Subscriber sam_approach_sub_;
+ros::Subscriber sam_grasp_sub_;
+
+// SAM targets (camera frame)
+bool sam_approach_received_ = false;
+bool sam_grasp_received_    = false;
+double sam_approach_cam_[3] = {0.0, 0.0, 0.0};
+double sam_grasp_cam_[3]    = {0.0, 0.0, 0.0};
+
+// Pick state machine
+enum PickState { PICK_IDLE=0, PICK_APPROACH=1, PICK_DESCEND=2, PICK_GRASP=3, PICK_LIFT=4 };
+int    pick_state_           = PICK_IDLE;
+double pick_state_start_time_= 0.0;
+Eigen::Vector3d approach_world_, grasp_world_;
+
+// 그리퍼팁 오프셋 (Bracelet_Link 기준, 튜닝 가능)
+const Eigen::Vector3d T_BL_GRIPPER_TIP = Eigen::Vector3d(0.0, 0.0, -0.18);
 
 mujoco_ros_msgs::JointSet robot_command_msg_;
 
@@ -207,4 +225,6 @@ double wrapRadiansFromMinusPiToPi(double rad_not_wrapped)
 void simCommandCallback(const std_msgs::StringConstPtr &msg);
 void simTimeCallback(const std_msgs::Float32ConstPtr &msg);
 void JointStateCallback(const sensor_msgs::JointState::ConstPtr& msg);
+void samApproachCallback(const geometry_msgs::PointStamped::ConstPtr& msg);
+void samGraspCallback(const geometry_msgs::PointStamped::ConstPtr& msg);
 void robot_command();

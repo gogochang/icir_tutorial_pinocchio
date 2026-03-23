@@ -76,5 +76,5 @@ from terminal, press 'v' to enable cartesian impedance control in translational 
 ![simplescreenrecorder-2026-03-21_15 08 05-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/5341471b-4fce-4dba-bdc0-c2bbe3c97088)
 
 ## 5. Advanced Projects
-### 4.1 SAM-based Interactive Pick-and-Place: Click-to-Pick and Lift in MuJoCo
+### 5.1 SAM-based Interactive Pick-and-Place: Click-to-Pick and Lift in MuJoCo
 ![simplescreenrecorder-2026-03-21_15 08 05-2026-03-21_23 04 46-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/76eb2606-4997-4716-95c2-6a9971c80527)
